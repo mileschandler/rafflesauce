@@ -1,9 +1,15 @@
 import * as ethers from 'ethers';
 const WEB3_ENDPOINT = 'https://cloudflare-eth.com';
+const MORALIS_ENDPOINT = 'https://deep-index.moralis.io/api/v2/nft';
 
 const handleError = () => {
   return undefined;
 };
+
+export interface Holder {
+  address: string,
+  tokenID: string
+}
 
 export const getTokenMetadata = async (address: string) => {
   const abi = [
@@ -25,7 +31,30 @@ export const getTokenMetadata = async (address: string) => {
 };
 
 export const getTokenHoldersList = async (contractID: string) => {
-  const holders = await fetch(`https://api.bloxy.info/token/token_holders_list?token=0x9c38bc76f282eb881a387c04fb67e9fc60aecf78&key=ACCA2pvUNFeVh&format=table`);
-  console.log('holders ', holders)
-  return holders
+  let page = 0;
+  const PAGESIZE = 500;
+  let holdersAdresses : Holder[] = [];
+  const holders = await fetch(`${MORALIS_ENDPOINT}/${contractID}/owners?chain=eth&format=decimal`, {
+    'headers': {'X-API-Key': 'enzyX0gCm34FlHx37OWtSzdRquIDBQkxa4nvAEmkaf505R9t36GoOju9s62WBSE1',
+  'accept': 'application/json'}})
+  .then(res => res.json());
+  console.log(holders)
+  const total = holders['total'];
+  while(holdersAdresses.length < total) {
+    await fetch(`${MORALIS_ENDPOINT}/${contractID}/owners?chain=eth&format=decimal&offset=${page * PAGESIZE}`, {
+      'headers': {'X-API-Key': 'enzyX0gCm34FlHx37OWtSzdRquIDBQkxa4nvAEmkaf505R9t36GoOju9s62WBSE1',
+    'accept': 'application/json'}})
+    .then(res => res.json())
+    .then(holders => holders['result'].forEach((holder: { [x: string]: any; }) => {
+    holdersAdresses.push({
+      address: holder['owner_of'],
+      tokenID: holder['token_id']
+    })
+  }));
+  console.log('PAGE ', page);
+  console.log(holdersAdresses.length, ' / ', total)
+  page++;
+      
+  }
+  return holdersAdresses
 }
