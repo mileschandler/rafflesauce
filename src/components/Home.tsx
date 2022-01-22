@@ -1,37 +1,16 @@
 import React from "react";
 import Moralis from "moralis";
-import {
-  getTokenMetadata,
-  getTokenHoldersList,
-  Holder,
-} from "../lambda/contract-token-api-helper";
-// Home page content of the entire site
-interface collection {
-  name: string;
-  symbol: string;
-  decimals: string;
-}
+import "./Home.css";
+import { useNavigate } from "react-router-dom";
 
+// Home page content of the entire site
 export const Home = () => {
   const [collectionID, setCollectionID] = React.useState("");
-  const [collection, setCollection] = React.useState<collection>();
-  const [loading, setLoading] = React.useState(false);
-  const [holders, setHolders] = React.useState<Holder[]>();
+  const [walletConnected, setWalletConnected] = React.useState();
+  let navigate = useNavigate();
   const handleSubmit = async (evt: any) => {
     evt.preventDefault();
-    setLoading(true);
-    console.log("submit!", collectionID);
-    await getTokenMetadata(collectionID).then((res) =>
-      setCollection({
-        name: res.name,
-        symbol: res.symbol,
-        decimals: res.decimals,
-      })
-    );
-    const holdersAdresses = await getTokenHoldersList(collectionID);
-    console.log("holders", holdersAdresses);
-    setHolders(holdersAdresses);
-    setLoading(false);
+    navigate(`/contract/${collectionID}`);
   };
 
   const login = async () => {
@@ -49,36 +28,48 @@ export const Home = () => {
           console.log(error);
         });
     }
+    if (user) setWalletConnected(user.get("ethAddress"));
   };
 
   return (
     <>
-      <h1>Welcome to RaffleWaffle</h1>
-      <button onClick={login}>Connect Wallet</button>
+      <h1>🧇Welcome to RaffleWaffle🧇</h1>
+      <button onClick={login}>
+        {walletConnected ? "Wallet Connected ✔️" : "Connect Wallet"}
+      </button>
+      <h2>{walletConnected}</h2>
+      <h2>Enter a Contract ID</h2>
+      {walletConnected && (
+        <>
+          <div className="container">
+            <form autoComplete="off" onSubmit={handleSubmit}>
+              <div className="finder">
+                <div className="finder__outer">
+                  <div className="finder__inner">
+                    <div className="finder__icon"></div>
+                    <input
+                      className="finder__input"
+                      type="text"
+                      size={42}
+                      name="contractID"
+                      value={collectionID}
+                      onChange={(e) => setCollectionID(e.target.value)}
+                    />
+                    <input type="submit" style={{ display: "none" }} />
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </>
+      )}
       <iframe
         src="https://my.spline.design/waffle-17df1585cb157156a6a691697e801d98/"
         title="waffle"
         width="100%"
         height="500px"
+        frameBorder="0"
       ></iframe>
-      <h2>Enter a Contract ID</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          <input
-            type="text"
-            value={collectionID}
-            onChange={(e) => setCollectionID(e.target.value)}
-          />
-        </label>
-        <input type="submit" value="Submit" />
-      </form>
-      {loading && <h2>LOADING...</h2>}
-      {collection && !loading && (
-        <>
-          <h2>{collection.symbol}</h2>
-          <h3>{collection.name}</h3>
-        </>
-      )}
     </>
   );
 };
